@@ -7,19 +7,19 @@ const fs = require('fs');
 const app = express();
 app.use(express.json());
 
-// Line 10: Apni OpenRouter API Key paste karein (single line me)
-const OPENROUTER_API_KEY = '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';
+// API Key gets loaded securely from environment variable
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 const possiblePaths = [
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-    process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
-    process.env.LOCALAPPDATA + '\\Microsoft\\Edge\\Application\\msedge.exe'
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
 ];
 
-let browserPath = possiblePaths.find(path => fs.existsSync(path));
+let browserPath = possiblePaths.find(path => fs.existsSync(path)) || process.env.PUPPETEER_EXECUTABLE_PATH;
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -78,7 +78,6 @@ async function getAIResponse(userMessage) {
 }
 
 client.on('message', async msg => {
-    // Sirf Groups, Channels, aur Statuses ko ignore karein
     if (
         msg.from.includes('@g.us') || 
         msg.from.includes('@newsletter') || 
@@ -92,15 +91,12 @@ client.on('message', async msg => {
     console.log(`📩 Message received from ${msg.from}: ${msg.body}`);
 
     try {
-        // Safe typing state check
         try {
             const chat = await msg.getChat();
             if (chat && typeof chat.sendStateTyping === 'function') {
                 await chat.sendStateTyping();
             }
-        } catch (e) {
-            // Typing state ignore agar load na ho
-        }
+        } catch (e) {}
 
         const aiReply = await getAIResponse(msg.body);
         await msg.reply(aiReply);
