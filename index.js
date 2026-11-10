@@ -1,5 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcodeTerminal = require('qrcode-terminal');
+const qrcode = require('qrcode');
 const express = require('express');
 const axios = require('axios');
 const fs = require('fs');
@@ -7,16 +8,14 @@ const fs = require('fs');
 const app = express();
 app.use(express.json());
 
-// API Key gets loaded securely from environment variable
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+let currentQR = '';
 
 const possiblePaths = [
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
 ];
 
 let browserPath = possiblePaths.find(path => fs.existsSync(path)) || process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -39,14 +38,42 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
-    console.log('\n========================================');
-    console.log('📱 SCAN THIS QR CODE WITH YOUR WHATSAPP:');
-    console.log('========================================\n');
-    qrcode.generate(qr, { small: true });
+    currentQR = qr;
+    console.log('--- NEW QR GENERATED (AVAILABLE ON /qr) ---');
+    qrcodeTerminal.generate(qr, { small: true });
 });
 
 client.on('ready', () => {
+    currentQR = '';
     console.log('✅ AI Real Estate WhatsApp Bot is Ready and Connected Successfully!');
+});
+
+// HD Image QR Route
+app.get('/qr', async (req, res) => {
+    if (!currentQR) {
+        return res.send(`
+            <div style="font-family:sans-serif;text-align:center;padding:50px;">
+                <h2>Bot is already connected OR QR code is loading...</h2>
+                <p>Wait 5 seconds and refresh this page.</p>
+            </div>
+        `);
+    }
+    try {
+        const qrImage = await qrcode.toDataURL(currentQR);
+        res.send(`
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:90vh;font-family:sans-serif;">
+                <h2 style="color:#333;">Scan WhatsApp AI Bot</h2>
+                <img src="${qrImage}" style="width:300px;height:300px;border:10px solid #f0f0f0;border-radius:10px;" />
+                <p style="margin-top:15px;color:#666;">Open WhatsApp > Linked Devices > Link a Device</p>
+            </div>
+        `);
+    } catch (err) {
+        res.status(500).send('Error rendering QR Code');
+    }
+});
+
+app.get('/', (req, res) => {
+    res.send('EshDesk WhatsApp Bot Status: LIVE');
 });
 
 async function getAIResponse(userMessage) {
@@ -108,4 +135,5 @@ client.on('message', async msg => {
 
 client.initialize();
 
-app.listen(3000, () => console.log('🚀 Local Gateway running on port 3000'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Gateway running on port ${PORT}`));
