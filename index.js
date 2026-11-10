@@ -23,7 +23,21 @@ let browserPath = possiblePaths.find(path => fs.existsSync(path)) || process.env
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        headless: 'new',
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+        headless: true,
+        protocolTimeout: 120000, // <--- Yeh line timeout fix karegi[span_1](start_span)[span_1](end_span)
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ]
+    }
+});
+
         executablePath: browserPath || undefined,
         args: [
             '--no-sandbox',
