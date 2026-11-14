@@ -63,4 +63,21 @@ app.get('/qr', async (req, res) => {
         const qrImage = await qrcode.toDataURL(currentQR);
         res.send(`
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:90vh;font-family:sans-serif;">
-                <h2 style="color:#333
+                <h2 style="color:#333;">Scan QR Code to Connect WhatsApp</h2>
+                <img src="${qrImage}" alt="WhatsApp QR Code" style="width:300px;height:300px;margin-top:20px;border:1px solid #ccc;border-radius:10px;padding:10px;" />
+                <p style="color:#666;margin-top:20px;">Open WhatsApp on your phone > Linked Devices > Link a Device</p>
+            </div>
+        `);
+    } catch (err) {
+        res.status(500).send('Error generating QR code image.');
+    }
+});
+
+// Start Express Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 Express server running on port ${PORT}`);
+});
+
+// Initialize WhatsApp Client
+client.initialize();
